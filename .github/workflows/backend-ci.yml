@@ -1,0 +1,125 @@
+name: backend-ci
+
+on:
+  pull_request:
+    branches: [ main, development ]
+  push:
+    branches: [ main, development ]
+
+permissions:
+  contents: read
+
+jobs:
+  backend-checks:
+    name: Backend test, build and migration smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: dotaops_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dotaops_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Make Maven Wrapper executable
+        working-directory: backend
+        run: chmod +x mvnw
+
+      - name: Run backend tests
+        working-directory: backend
+        run: ./mvnw -B clean test -Dspring.profiles.active=test
+
+      - name: Build backend package
+        working-directory: backend
+        run: ./mvnw -B package -DskipTests
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+
+      - name: Bootstrap Supabase-compatible local auth schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql \
+            --host 127.0.0.1 \
+            --port 5432 \
+            --username postgres \
+            --dbname dotaops_ci \
+            --set ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            create role anon nologin;
+          exception when duplicate_object then
+            null;
+          end
+          $$;
+
+          do $$
+          begin
+            create role authenticated nologin;
+          exception when duplicate_object then
+            null;
+          end
+          $$;
+
+          do $$
+          begin
+            create role service_role nologin bypassrls;
+          exception when duplicate_object then
+            null;
+          end
+          $$;
+
+          alter role service_role bypassrls;
+
+          create schema if not exists auth;
+
+          create table if not exists auth.users (
+            id uuid primary key,
+            email text,
+            created_at timestamptz not null default now(),
+            updated_at timestamptz not null default now()
+          );
+
+          create or replace function auth.uid()
+          returns uuid
+          language sql
+          stable
+          as $$
+            select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+          $$;
+
+          grant usage on schema auth to anon, authenticated, service_role;
+          grant select on auth.users to anon, authenticated, service_role;
+          SQL
+
+      - name: Run Postgres integration tests
+        working-directory: backend
+        env:
+          SUPABASE_DB_URL: jdbc:postgresql://127.0.0.1:5432/dotaops_ci
+          SUPABASE_DB_USER: postgres
+          SUPABASE_DB_PASSWORD: postgres
+          SUPABASE_JWT_SECRET: 01234567890123456789012345678901
+          SUPABASE_JWT_ISSUER: https://ci.supabase.local/auth/v1
+          SUPABASE_JWT_AUDIENCE: authenticated
+          SPRING_FLYWAY_ENABLED: "true"
+        run: ./mvnw -B "-Dtest=*IntegrationTest" test -Dspring.profiles.active=integration
