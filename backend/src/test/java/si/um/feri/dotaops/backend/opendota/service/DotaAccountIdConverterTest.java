@@ -19,4 +19,10 @@ class DotaAccountIdConverterTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("SteamID64 must be a 17 digit numeric value.");
     }
+
+    @Test
+    void acceptsTheLowestSupportedSteamId64() {
+        assertThat(DotaAccountIdConverter.steamId64ToAccountId32("76561197960265728"))
+                .isZero();
+    }
 }
