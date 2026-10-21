@@ -88,8 +88,6 @@ public class SupabaseJwtAuthenticationFilter extends OncePerRequestFilter {
                     principal,
                     null,
                     SupabaseAuthorities.from(profile));
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
         } catch (AuthenticationException exception) {
@@ -126,8 +124,6 @@ public class SupabaseJwtAuthenticationFilter extends OncePerRequestFilter {
                     principal,
                     null,
                     SupabaseAuthorities.from(profile));
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
         } catch (AuthenticationException exception) {
