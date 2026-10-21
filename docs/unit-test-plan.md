@@ -22,7 +22,7 @@ Uporabljen je obstoječi JUnit 5 z AssertJ. Dodani scenariji so v:
 - `backend/src/test/java/si/um/feri/dotaops/backend/common/security/ClientIpAddressResolverTest.java`
 - `backend/src/test/java/si/um/feri/dotaops/backend/config/properties/CorsPropertiesTest.java`
 
-Testi preverjajo dejanske vrednosti, enakost celotnih zapisov, pomembne meje kvot, izjemne primere, ohranjanje oblike JSON, prioriteto IP-glav, mejo pretvorbe SteamID64 in rezervne CORS-nastavitve. Za časovne preizkuse `RequestRateLimiter` uporablja nastavljivo uro, zato so testi deterministični in ne čakajo. Izbrane enote nimajo zunanjih storitev; mocki zato niso potrebni.
+Testi preverjajo dejanske vrednosti, enakost celotnih zapisov, pomembne meje kvot, izjemne primere, ohranjanje oblike JSON, prioriteto IP-glav, mejo pretvorbe SteamID64 in rezervne CORS-nastavitve. Za časovne preizkuse `RequestRateLimiter` uporablja nastavljivo uro, zato so testi deterministični in ne čakajo. `ClientIpAddressResolver` prejme Springov `MockHttpServletRequest`; druge izbrane enote ne potrebujejo mockov, ker nimajo zunanjih odvisnosti.
 
 Pregled je pokazal vrzeli v obstoječih testih: manjkali so zgornja meja 100 in enaki časovni meji, ponastavitev omejevalnika na meji okna, izolacija števcev, projekcija dovoljenih polj, napačen JSON ter občutljiva imena s priponami. Dodatni testi pokrijejo tudi odprta časovna obdobja, normalizacijo IP-ja za omejevanje, nespremenljivost očiščenega JSON-a, spodnjo mejo pretvorbe SteamID64, prednost `X-Real-IP` in rezervne CORS-nastavitve. Ni bilo treba spreminjati produkcijske logike.
 
@@ -33,26 +33,32 @@ Vsaka napaka je bila vnesena ločeno, ustrezen ciljni test pa je vrnil neuspešn
 | Enota | Začasna napaka | Test, ki jo je zaznal |
 | --- | --- | --- |
 | `AnalyticsFilters` | Zgornja omejitev znižana s 100 na 99. | `limitDefaultsToTenAndCapsAtOneHundred` je pričakoval 100 in dobil 99. |
-| `AnalyticsFilters` | Pogoj za vrstni red datumov obrnjen. | `rejectsTimeRangeWhereFromIsAfterTo` ni več dobil pričakovane izjeme; test veljavnega časovnega razpona je tudi zaznal napačno zavrnitev. |
-| `RequestRateLimiter` | Primerjava `count > maxRequests` zamenjana z `count >= maxRequests`. | Testi kvot so odpovedali, ker je bila zavrnjena že dovoljena 10., 20. ali 30. zahteva. |
-| `RequestRateLimiter` | Enominutno okno za uvoz podaljšano na dve minuti. | `matchImportCountersResetAtTheNextOneMinuteWindow` je zaznal, da se kvota na pričakovani meji ni ponastavila. |
-| `AuditJsonSanitizer` | Občutljiva vrednost vrnjena brez `[REDACTED]`. | Rekurzivni preizkus in preizkusi projekcije ter gnezdenih polj so pokazali izvirne skrivne vrednosti. |
-| `AuditJsonSanitizer` | Odstranjena obravnava pripone `_token`. | `projectsOnlyAllowlistedTopLevelFieldsAndNormalizesSensitiveNames` je zaznal razkrit `x-Refresh-Token`. |
+| `AnalyticsFilters` | Primerjava `from.isAfter(to)` obrnjena. | `rejectsTimeRangeWhereFromIsAfterTo` ni dobil pričakovane izjeme; test veljavnega obdobja je zaznal tudi napačno zavrnitev. |
+| `RequestRateLimiter` | Primerjava `count > maxRequests` zamenjana z `count >= maxRequests`. | Testi kvot so odpovedali, ker je bila zavrnjena že dovoljena zahteva na meji kvote. |
+| `RequestRateLimiter` | Enominutno okno za uvoz podaljšano na dve minuti. | `matchImportCountersResetAtTheNextOneMinuteWindow` je odpovedal, ker se števec ni ponastavil. |
+| `AuditJsonSanitizer` | Izklopljena redakcija občutljivih polj. | Rekurzivni test, test normaliziranih imen in test gnezdenih polj so dobili nerazkrite skrivnosti. |
+| `AuditJsonSanitizer` | Vrhnja projekcija JSON-a vrnjena brez zaščite pred spreminjanjem. | `returnedProjectionAndNestedObjectsAreImmutable` ni več dobil pričakovane izjeme pri spremembi mape. |
+| `DotaAccountIdConverter` | Osnovni SteamID64 odmik povečan za 1. | Test pretvorbe je dobil napačen account ID, test spodnje meje pa je dobil izjemo. |
+| `DotaAccountIdConverter` | Spodnja meja spremenjena iz `accountId < 0` v `accountId <= 0`. | `acceptsTheLowestSupportedSteamId64` je odpovedal z izjemo. |
+| `ClientIpAddressResolver` | Izbran drugi namesto prvega naslova v `X-Forwarded-For`. | `resolvesFirstForwardedForAddress` je pričakoval `198.51.100.10`, dobil pa `203.0.113.20`. |
+| `ClientIpAddressResolver` | Odstranjeno obrezovanje presledkov pri `X-Real-IP`. | `usesRealIpHeaderWhenForwardedForIsAbsent` je dobil naslov z začetnimi in končnimi presledki. |
+| `CorsProperties` | Privzeti lokalni izvor spremenjen z vrat 3000 na 3001. | Test privzetih izvorov in test rezervnih vrednosti sta zaznala napačen naslov. |
+| `CorsProperties` | Filter praznih vrednosti obrnjen. | Test konfiguriranih izvorov in test praznega seznama sta zaznala napačne vrednosti. |
 
-Po vseh šestih preizkusih so bile produkcijske datoteke preverjene in v končnem diffu ni nobene namerne mutacije.
+Vsaka od šestih izbranih enot je bila preverjena z dvema ločenima začasnima napakama. Ciljni testni razred je pri vseh dvanajstih mutacijah odpovedal. Po vsakem poskusu je bila izvorna produkcijska datoteka obnovljena; po končnem zagonu ni produkcijskih sprememb zaradi mutacij.
 
 ## Pokritost
 
-Poročilo JaCoCo za celoten backend je v `backend/target/site/jacoco/index.html`; strojno berljiva različica je `backend/target/site/jacoco/jacoco.xml`.
+Poročilo JaCoCo za celoten backend je v `backend/target/site/jacoco/index.html`; strojno berljiva različica je `backend/target/site/jacoco/jacoco.xml`. Poročilo je bilo ponovno izdelano po celotnem testnem zagonu.
 
 | Metrika | Pokritost |
 | --- | ---: |
 | Vrstice | 57,7 % |
 | Bajtkodne instrukcije (približek za stavke) | 58,3 % |
 | Metode | 60,1 % |
-| Veje | 53,8 % |
+| Veje | 54,0 % |
 
-Pokritost izbranih enot v tem poročilu izhaja iz zadnjega izmerjenega JaCoCo zagona in ne vključuje šestih spodaj opisanih dodatnih testov. Izmerjene vrednosti so bile: `AnalyticsFilters` 100 % vrstic / 87,5 % vej; `RequestRateLimiter` 85,3 % vrstic / 66,7 % vej; `AuditJsonSanitizer` 98,2 % vrstic / 92,0 % vej. Pri omejevalniku ostane nepokrita predvsem redka veja čiščenja več kot 10.000 števcev. Prag pokritosti ni nastavljen.
+Pokritost izbranih enot: `AnalyticsFilters` 100 % vrstic / 100 % vej; `RequestRateLimiter` 85,3 % vrstic / 66,7 % vej; `AuditJsonSanitizer` 98,2 % vrstic / 92,0 % vej; `DotaAccountIdConverter` 87,5 % vrstic / 62,5 % vej; `ClientIpAddressResolver` 90,9 % vrstic / 83,3 % vej; `CorsProperties` 100 % vrstic / 87,5 % vej. Pri omejevalniku ostane nepokrita predvsem redka veja čiščenja več kot 10.000 števcev. Prag pokritosti ni nastavljen.
 
 ## CI/CD
 
@@ -70,6 +76,6 @@ cd backend
 .\mvnw.cmd -B jacoco:report
 ```
 
-Zadnji zabeleženi zagon pred dodajanjem šestih najnovejših testnih primerov: 535 testov, 0 napak, 0 neuspehov, 49 preskočenih; preskočeni so integracijski testi, ki zahtevajo PostgreSQL in Supabase-kompatibilne vloge. Šest najnovejših primerov še ni bilo zagnanih, zato tukaj navedeno število testov in JaCoCo pokritost ne predstavljata ponovnega zagona po teh spremembah. Testi niso bili izvajani proti povezani uporabnikovi Supabase bazi, ker bi lahko spreminjali podatke. Mavenov status ob namernih napakah je bil 1, kar potrjuje, da neuspešni test prekine izvajanje.
+Celoten backend testni zagon po dodajanju šestih novih testov: 541 testov, 0 napak, 0 neuspehov, 49 preskočenih. Preskočeni so integracijski testi, ki zahtevajo PostgreSQL in Supabase-kompatibilne vloge. Dodatno ciljno preverjanje šestih izbranih testnih razredov je izvedlo vseh 26 testov brez napak. Testi niso bili izvajani proti povezani uporabnikovi Supabase bazi, ker bi lahko spreminjali podatke. Mavenov status ob namernih napakah je bil 1, kar potrjuje, da neuspešni test prekine izvajanje.
 
 Lokalni integracijski profil in CI job, ki zažene zunanje Postgres integracijske teste, nista bila izvedena v tej nalogi. Backend CI pa je konfiguriran, da ju izvede po uspešnih enotnih testih in objavi poročilo o pokritosti.
