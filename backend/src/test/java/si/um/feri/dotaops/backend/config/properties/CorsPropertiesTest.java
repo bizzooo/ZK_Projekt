@@ -26,4 +26,12 @@ class CorsPropertiesTest {
         assertThat(properties.allowedOriginPatterns())
                 .containsExactly("https://app.example.test", "http://localhost:5173");
     }
+
+    @Test
+    void fallsBackToLocalOriginsWhenAllConfiguredEntriesAreBlank() {
+        CorsProperties properties = new CorsProperties(List.of(" ", "\t"));
+
+        assertThat(properties.allowedOriginPatterns())
+                .containsExactly("http://localhost:3000", "http://127.0.0.1:3000");
+    }
 }

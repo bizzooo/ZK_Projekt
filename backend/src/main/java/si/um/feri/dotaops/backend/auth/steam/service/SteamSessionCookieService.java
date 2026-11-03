@@ -26,7 +26,7 @@ public class SteamSessionCookieService {
                 .secure(properties.cookieSecure())
                 .path(properties.cookiePath())
                 .sameSite(properties.cookieSameSite())
-                .maxAge(properties.ttl());
+                .maxAge(properties.ttl().minusSeconds(1));
 
         if (StringUtils.hasText(properties.cookieDomain())) {
             builder.domain(properties.cookieDomain().trim());
@@ -42,7 +42,7 @@ public class SteamSessionCookieService {
                 .secure(properties.cookieSecure())
                 .path(properties.cookiePath())
                 .sameSite(properties.cookieSameSite())
-                .maxAge(0);
+                .maxAge(1);
 
         if (StringUtils.hasText(properties.cookieDomain())) {
             builder.domain(properties.cookieDomain().trim());

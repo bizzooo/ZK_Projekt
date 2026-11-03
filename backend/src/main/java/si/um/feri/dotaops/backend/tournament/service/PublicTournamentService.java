@@ -42,8 +42,8 @@ public class PublicTournamentService {
 
     @Transactional(readOnly = true)
     public PageResponse<PublicTournamentListItemResponse> listPublicTournaments(String search, int page, int size) {
-        int safePage = Math.max(page, 0);
-        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 10);
         long offset = (long) safePage * safeSize;
 
         List<PublicTournamentListItemResponse> items = publicTournamentRepository

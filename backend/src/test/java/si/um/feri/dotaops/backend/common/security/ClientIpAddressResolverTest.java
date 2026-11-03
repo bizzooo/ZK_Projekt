@@ -25,4 +25,13 @@ class ClientIpAddressResolverTest {
 
         assertThat(resolver.resolve(request)).isEqualTo("127.0.0.1");
     }
+
+    @Test
+    void usesRealIpHeaderWhenForwardedForIsAbsent() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-Real-IP", " 198.51.100.25 ");
+        request.setRemoteAddr("127.0.0.1");
+
+        assertThat(resolver.resolve(request)).isEqualTo("198.51.100.25");
+    }
 }
