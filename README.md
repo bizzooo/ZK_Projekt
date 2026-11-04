@@ -21,6 +21,13 @@ DotaOps/
   .env.example  Primer root environment nastavitev
 ```
 
+## Dokumentacija
+
+- [Funkcionalni pregled in testni scenariji](docs/funkcionalni-pregled-in-testni-scenariji.md) — ključne funkcionalnosti, odgovorne osebe, trije funkcionalni testi in obrazci za poročanje.
+- [Stresni test javnega kataloga](docs/system-stress-test.md) — profil naraščajoče obremenitve, merila po stopnjah, okrevanje in k6 skripta.
+- [Pregled trenutnega stanja projekta](docs/project-current-state-overview.md)
+- [Demo podatki in navodila za seed](docs/backend-demo-seed.md)
+
 Pomembne datoteke:
 
 - `frontend/src/app/` vsebuje strani aplikacije.
