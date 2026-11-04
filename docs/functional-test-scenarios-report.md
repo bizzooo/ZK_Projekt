@@ -1,11 +1,11 @@
 # Funkcionalni testni scenariji in poročilo izvedbe
 
 **Projekt:** DotaOps  
-**Datum priprave in izvedbe:** 3. 11. 2026  
-**Dokument:** FT-DOTAOPS-01, različica 1.0  
+**Dokument:** FT-DOTAOPS-01, različica 1.1  
+**Datum priprave:** 3. 11. 2026 · **Datum ponovne izvedbe in uskladitve:** 4. 11. 2026  
 **Obseg:** devet funkcionalnih scenarijev – trije za vsakega od treh članov ekipe
 
-## Pregled dokumentacije in funkcionalnosti
+## 1. Pregled dokumentacije in funkcionalnosti
 
 V repozitoriju je obstoječa dokumentacija, ki opisuje namen, arhitekturo, API-je, podatkovne tokove in trenutno stanje rešitve:
 
@@ -13,177 +13,390 @@ V repozitoriju je obstoječa dokumentacija, ki opisuje namen, arhitekturo, API-j
 | --- | --- |
 | `README.md` | Povzame DotaOps, tehnologije, strukturo in osnovni zagon. |
 | `docs/project-current-state-overview.md` | Najbolj celovit pregled implementiranih funkcij, endpointov, podatkovnega modela, testov in omejitev. |
+| `docs/reports/Iteracija_1_DotaOps_pregled.md` | Seznam GitHub issue-jev s kratkimi zahtevami (npr. #40 Profile API, #42 Ekipe CRUD). |
 | `docs/backend-my-team-api.md` | Opis ekip, članstva in povezane API funkcionalnosti. |
 | `docs/backend-storage-upload-api.md` | Opis podpisanih URL-jev za nalaganje avatarjev in slik ekip. |
 | `docs/backend-analytics-api.md` | Opis analitičnih endpointov in filtrov. |
 | `docs/backend-demo-seed.md` | Opis priprave demo podatkov. |
-| Testi pod `backend/src/test/java/` | Vsebujejo enotske, servisne, controller in PostgreSQL integracijske teste. |
+| Testi pod `backend/src/test/java/` | Enotski, servisni, controller in PostgreSQL integracijski testi. |
 
-Rešitev vključuje profile in prijavo, upravljanje ekip in rosterjev, turnirje ter skupine, tekme, uvoz podatkov OpenDota, analitiko, audit in shranjevanje slik prek Supabase Storage. Dokumentacija dobro pokriva funkcionalnosti in API-je, ne vsebuje pa dogovorjenega seznama ročnih/funkcionalnih scenarijev z lastniki in zapisnikom izvedbe. Ta dokument dopolnjuje to vrzel.
+Ključne funkcionalnosti rešitve so: profili in prijava (Supabase, Steam), upravljanje ekip in rosterjev (povabila, prošnje za pridružitev), turnirji in skupine, tekme, uvoz podatkov OpenDota, analitika, audit in shranjevanje slik prek Supabase Storage. Dokumentacija dobro pokriva funkcionalnosti in API-je, ne vsebuje pa specifikacije zahtev (SZPO) in dogovorjenega seznama funkcionalnih scenarijev z lastniki in zapisnikom izvedbe. Ta dokument dopolnjuje to vrzel; kot zahteve so, kjer obstajajo, navedeni GitHub issue-ji.
 
-## Način oblikovanja in obseg testiranja
+## 2. Način oblikovanja in obseg testiranja
 
-Dokument je oblikovan po prilagojeni predlogi ISO/IEC/IEEE 29119-3:2021: vsebuje identifikacijo scenarijev, cilj, predpogoje in testne podatke, korake z pričakovanimi rezultati, sledljivost do funkcionalnosti, lastnike ter dnevnik izvedbe. Naslovi in razdelki so prilagojeni projektu. Standard opredeljuje predloge dokumentacije za različne vrste testiranja; ta dokument je projektna prilagoditev, ne prepis standarda. [ISO – opis standarda](https://www.iso.org/standard/79429.html), [IEEE SA – 29119-3-2021](https://standards.ieee.org/ieee/29119-3/7499/).
+Scenariji so zapisani po predlogi, prilagojeni po ISO/IEC/IEEE 29119-3:2021 (specifikacija testnega primera/postopka): identifikacija, aplikacija in verzija, datum, avtor, kratek opis, referenca, zahteve, namen, predpogoji, vhodni podatki, koraki z akcijo in pričakovanim rezultatom, pogoji uspešnega zaključka ter opombe. Vsakemu scenariju je dodan rezultat izvedbe. [ISO – opis standarda](https://www.iso.org/standard/79429.html), [IEEE SA – 29119-3-2021](https://standards.ieee.org/ieee/29119-3/7499/).
 
-Testi so bili izvedeni avtomatizirano na ravni backend servisov in controllerjev z obstoječimi JUnit testi ter Mockito nadomestnimi objekti. Preverjajo poslovna pravila in izbrane HTTP pogodbe, ne pa delovanja brskalniškega UI-ja, prave baze Supabase ali dejanske storitve OpenDota/Storage. Izvedba v tem dokumentu zato ni predstavljena kot polni E2E test.
+Scenariji so izvedeni avtomatizirano na ravni backend servisov in controllerjev z JUnit 5 testi. Baza, Supabase Storage in OpenDota so nadomeščeni z Mockito nadomestnimi objekti (mock), controller testi pa HTTP sloj preverijo z MockMvc. Testi torej preverjajo poslovna pravila in HTTP pogodbe, ne pa brskalniškega UI-ja, prave baze ali zunanjih storitev; izvedba **ni** polni E2E test.
 
-Iz obsega so izpuščeni natanko tokovi, navedeni kot prepovedani v nalogi: javno iskanje in ogled turnirja; prijava ekipe skupaj z organizatorjevim pregledom in check-inom; generiranje izločilnega razporeda, oddaja rezultata ter napredovanje zmagovalca. Pri testu razporejanja v skupino je odobrena prijava ekipe samo predpripravljen testni podatek; prijava, pregled prijave in check-in se ne izvajajo.
+Iz obsega so izpuščeni tokovi, ki jih naloga prepoveduje: (1) javno iskanje in ogled turnirja; (2) prijava ekipe, pregled organizatorja in check-in; (3) generiranje izločilnega razporeda, vnos rezultata in napredovanje zmagovalca. V FT-06 je odobrena prijava ekipe samo vnaprej pripravljen testni podatek; prijava, pregled prijave in check-in se ne izvajajo.
 
-## Testno okolje in merila
+## 3. Testno okolje in splošni kriterij uspeha
 
 | Lastnost | Vrednost |
 | --- | --- |
-| Datum | 3. 11. 2026 |
-| Maven | 3.9.14 |
-| JDK | 23.0.2; backend je preveden z `--release 21` |
-| Profil | Spring `test`; izbrani servisni testi uporabljajo Mockito; kjer je potrebno, H2 |
+| Aplikacija / verzija | DotaOps backend `0.0.1-SNAPSHOT` (Spring Boot 4.0.6) |
+| Orodja | Maven Wrapper (Maven 3.9.14), JDK 23.0.2 (prevajanje z `--release 21`), JUnit 5, Mockito, AssertJ, MockMvc |
+| Profil | Servisni testi: čisti Mockito; controller testi: Spring `test` profil (H2 v pomnilniku) z MockMvc |
+| Operacijski sistem | Windows 11 |
 | Zunanji sistemi | Supabase, OpenDota in Steam niso bili klicani |
-| Izvedba | Selektivni JUnit 5/Surefire testi po razredih in imenih metod; brez sprememb produkcijske kode. Zaradi omejitve JVM self-attach so bili testi zagnani brez forkanja in z Mockito agentom. |
-| Pogoj uspeha | Vsi navedeni testi uspejo; poslovni rezultat ustreza pričakovanemu; nedovoljen ali neveljaven tok ne spremeni stanja, kjer je to del scenarija |
+| Kriterij uspeha | Vsi navedeni testi uspejo; poslovni rezultat ustreza pričakovanemu |
 
-V obstoječem poročilu so člani ekipe navedeni samo kot Član 1 (Windows 11), Član 2 (macOS Sonoma) in Član 3 (Ubuntu 22.04), brez imen. Zato so spodaj uporabljene iste oznake; pred oddajo jih zamenjajte z dejanskimi imeni.
+Člani ekipe so označeni kot Član 1, Član 2 in Član 3; pred oddajo oznake zamenjajte z imeni.
 
-## Seznam scenarijev in odgovornosti
+## 4. Seznam scenarijev in odgovornosti
 
-| ID | Naziv scenarija | Odgovorni član | Izvedeni test |
+| ID | Naziv scenarija | Odgovorni član | Izvedeni testi |
 | --- | --- | --- | --- |
-| FT-01 | Posodobitev profila z normalizacijo polj | Član 1 (Windows 11) | `ProfileServiceTest#updateCurrentProfileNormalizesPatchFields` |
-| FT-02 | Ustvaritev ekipe in samodejna nastavitev kapitana | Član 1 (Windows 11) | `TeamServiceTest#createTeamSetsAuthenticatedUserAsCaptainAndGeneratesSlug` |
-| FT-03 | Kapitan sprejme prošnjo igralca za pridružitev ekipi | Član 1 (Windows 11) | `TeamJoinRequestServiceTest#captainCanAcceptJoinRequestAndMemberIsCreated` |
-| FT-04 | Organizator ustvari osnutek turnirja s privzetimi nastavitvami | Član 2 (macOS Sonoma) | `TournamentServiceTest#organizerCanCreateDraftTournamentWithDefaults`; `TournamentControllerTest#createTournamentReturnsCreatedTournament` |
-| FT-05 | Lastnik objavi veljaven osnutek turnirja | Član 2 (macOS Sonoma) | `TournamentServiceTest#ownerCanPublishTournament`; `TournamentControllerTest#publishTournamentReturnsPublishedTournament` |
-| FT-06 | Organizator razporedi odobreno ekipo v skupino | Član 2 (macOS Sonoma) | `TournamentGroupServiceTest#organizerCanAddApprovedParticipantToGroup` |
-| FT-07 | Uvoz tekme OpenDota zaključi uspešno in zabeleži statuse | Član 3 (Ubuntu 22.04) | `MatchImportServiceTest#importMatchCreatesProcessingRecordFetchesOpenDotaAndStoresReadyPayload` |
-| FT-08 | Ponovni uvoz po napaki uporabi isti zapis in ne podvoji igralcev | Član 3 (Ubuntu 22.04) | `MatchImportServiceTest#retryExistingErrorImportDoesNotCreateDuplicateImportAndReplacesPlayersOnce` |
-| FT-09 | Podpisan avatar URL in potrditev shranjenega avatarja | Član 3 (Ubuntu 22.04) | `StorageUploadServiceTest#createCurrentAvatarUploadUrlGeneratesProfileScopedPath`; `#confirmCurrentAvatarPersistsBackendGeneratedPublicUrlAndPath`; `StorageUploadControllerTest#createCurrentAvatarUploadUrlReturnsSignedUploadContract`; `#confirmCurrentAvatarReturnsPersistedAvatarUrl` |
+| FT-01 | Posodobitev profila z normalizacijo polj | Član 1 | `ProfileServiceTest#updateCurrentProfileNormalizesPatchFields` |
+| FT-02 | Ustvaritev ekipe in samodejna nastavitev kapitana | Član 1 | `TeamServiceTest#createTeamSetsAuthenticatedUserAsCaptainAndGeneratesSlug` |
+| FT-03 | Kapitan sprejme prošnjo igralca za pridružitev ekipi | Član 1 | `TeamJoinRequestServiceTest#captainCanAcceptJoinRequestAndMemberIsCreated` |
+| FT-04 | Organizator ustvari osnutek turnirja s privzetimi nastavitvami | Član 2 | `TournamentServiceTest#organizerCanCreateDraftTournamentWithDefaults`; `TournamentControllerTest#createTournamentReturnsCreatedTournament` |
+| FT-05 | Lastnik objavi veljaven osnutek turnirja | Član 2 | `TournamentServiceTest#ownerCanPublishTournament`; `TournamentControllerTest#publishTournamentReturnsPublishedTournament` |
+| FT-06 | Organizator razporedi odobreno ekipo v skupino | Član 2 | `TournamentGroupServiceTest#organizerCanAddApprovedParticipantToGroup` |
+| FT-07 | Uvoz tekme OpenDota zaključi uspešno in zabeleži statuse | Član 3 | `MatchImportServiceTest#importMatchCreatesProcessingRecordFetchesOpenDotaAndStoresReadyPayload` |
+| FT-08 | Ponovni uvoz po napaki uporabi isti zapis in ne podvoji igralcev | Član 3 | `MatchImportServiceTest#retryExistingErrorImportDoesNotCreateDuplicateImportAndReplacesPlayersOnce` |
+| FT-09 | Podpisan avatar URL in potrditev shranjenega avatarja | Član 3 | `StorageUploadServiceTest#createCurrentAvatarUploadUrlGeneratesProfileScopedPath`, `#confirmCurrentAvatarPersistsBackendGeneratedPublicUrlAndPath`; `StorageUploadControllerTest#createCurrentAvatarUploadUrlReturnsSignedUploadContract`, `#confirmCurrentAvatarReturnsPersistedAvatarUrl` |
 
-## Specifikacije testnih scenarijev
+## 5. Specifikacije testnih scenarijev
 
 ### FT-01 – Posodobitev profila z normalizacijo polj
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-01** |
 | --- | --- |
-| Odgovorni | Član 1 (Windows 11) |
-| Cilj / sledljivost | Preveriti, da servis shrani dovoljena polja profila uporabnika, normalizira presledke in kodo države ter ne pošlje nenavedenega polja kot spremembe. `ProfileService.updateCurrentProfile`; `docs/project-current-state-overview.md` – profilni API. |
-| Predpogoji / podatki | Avtenticiran profil `CarryOne`, država `SI`; posodobitev: nickname `" SupportTwo "`, bio `"  Draft caller  "`, country `"de"`; display name ni poslan. |
-| Koraki in pričakovani rezultat | 1. Pokliči posodobitev profila za trenutnega uporabnika. 2. Preveri ukaz, poslan repozitoriju. Pričakovano: nickname `SupportTwo`, bio `Draft caller`, država `DE`; display name je označen kot nespremenjen. |
-| Dejanski rezultat | Normalizirana vrednost in prisotnost polj v ukazu ustrezata pričakovanemu. PASS. |
-| Dokaz izvedbe | `ProfileServiceTest#updateCurrentProfileNormalizesPatchFields` – 1 test, brez napake. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 1 |
+| **Kratek opis** | Posodobitev lastnega profila z normalizacijo polj |
+| **Referenca:** `ProfileService.updateCurrentProfile`; `PATCH /api/me/profile`; `docs/project-current-state-overview.md` | **Zahteve v SZPO:** / (GitHub issue #40 BE/DB-07 Profile API) |
+
+**Namen:** Preveriti, da servis shrani poslana polja profila, odstrani odvečne presledke, kodo države pretvori v velike črke in nenavedenega polja ne obravnava kot spremembe.
+
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Avtenticiran uporabnik z obstoječim profilom `CarryOne`, država `SI`. | nickname `" SupportTwo "`, bio `"  Draft caller  "`, country `"de"`; displayName ni poslan (`null`). |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Pokliči posodobitev profila trenutnega uporabnika z vhodnimi podatki. | Servis poišče profil in pošlje ukaz za posodobitev repozitoriju. |
+| 2. | Preveri ukaz, poslan repozitoriju. | nickname `SupportTwo`, bio `Draft caller`, država `DE`; vsa tri polja so označena kot poslana. |
+| 3. | Preveri polje displayName v ukazu. | displayName je označen kot neposlan in ima vrednost `null`. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi `ProfileServiceTest#updateCurrentProfileNormalizesPatchFields`. | Test uspe (vse 8 trditev). |
+
+**Opombe, komentarji, navodila:** Repozitorij je nadomeščen z mock objektom; dejanski zapis v bazo in HTTP sloj nista preverjena.
+
+**Rezultat izvedbe (4. 11. 2026):** vse vrednosti ukaza ustrezajo pričakovanim – **PASS**.
 
 ### FT-02 – Ustvaritev ekipe in samodejna nastavitev kapitana
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-02** |
 | --- | --- |
-| Odgovorni | Član 1 (Windows 11) |
-| Cilj / sledljivost | Preveriti normalizacijo vhodnih vrednosti in dodelitev kapetanske vloge ustvarjalcu ekipe. `TeamService.createTeam`; `docs/backend-my-team-api.md`. |
-| Predpogoji / podatki | Prijavljen profil z globalno vlogo `player`; ime `"  Ancient Stack  "`, oznaka `" AS "`, regija `"  EU  "`, opis `"  Tier two squad  "`; slug ni podan. |
-| Koraki in pričakovani rezultat | 1. Ustvari ekipo. 2. Preveri ukaza za ekipo in člana rostera. Pričakovano: ime `Ancient Stack`, oznaka `AS`, slug `ancient-stack`, regija `EU`; ustvarjalec je kapitan in se doda v roster z vlogo `SUPPORT`. |
-| Dejanski rezultat | Vse preverjene vrednosti in kapetanov roster zapis ustrezajo pričakovanemu. PASS. |
-| Dokaz izvedbe | `TeamServiceTest#createTeamSetsAuthenticatedUserAsCaptainAndGeneratesSlug` – 1 test, brez napake. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 1 |
+| **Kratek opis** | Ustvaritev ekipe; ustvarjalec postane kapitan |
+| **Referenca:** `TeamService.createTeam`; `POST /api/teams`; `docs/backend-my-team-api.md` | **Zahteve v SZPO:** / (GitHub issue #42 BE/DB-08 Ekipe CRUD) |
+
+**Namen:** Preveriti normalizacijo vhodnih vrednosti, samodejno ustvarjen slug ter dodelitev kapetanske vloge in roster zapisa ustvarjalcu ekipe.
+
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Prijavljen profil z globalno vlogo `player`. | ime `"  Ancient Stack  "`, oznaka `" AS "`, regija `"  EU  "`, opis `"  Tier two squad  "`; slug ni podan. |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Ustvari ekipo z vhodnimi podatki. | Repozitorij prejme ukaz za ustvarjanje ekipe in ukaz za člana rostra. |
+| 2. | Preveri ukaz za ekipo. | ime `Ancient Stack`, oznaka `AS`, slug `ancient-stack`, regija `EU`, opis `Tier two squad`; kapitan in avtor sta trenutni uporabnik. |
+| 3. | Preveri ukaz za člana rostra. | Kapitan je dodan v roster z vlogo `SUPPORT`. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi `TeamServiceTest#createTeamSetsAuthenticatedUserAsCaptainAndGeneratesSlug`. | Test uspe (vse 9 trditev). |
+
+**Opombe, komentarji, navodila:** Repozitoriji so mock; preveri se vsebina ukazov, ne zapis v bazi.
+
+**Rezultat izvedbe (4. 11. 2026):** vse vrednosti in roster zapis ustrezajo pričakovanim – **PASS**.
 
 ### FT-03 – Kapitan sprejme prošnjo igralca za pridružitev ekipi
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-03** |
 | --- | --- |
-| Odgovorni | Član 1 (Windows 11) |
-| Cilj / sledljivost | Preveriti, da sprejem čakajoče prošnje spremeni njen status in doda prosilca v roster. To je tok članstva v ekipi; ne gre za prijavo ekipe na turnir. `TeamJoinRequestService.acceptJoinRequest`; `docs/project-current-state-overview.md` – ekipe in join requests. |
-| Predpogoji / podatki | Čakajoča prošnja; zahtevo obravnava kapitan ekipe; roster ima prostor; prosilec je igralec brez aktivnega članstva v drugi ekipi. |
-| Koraki in pričakovani rezultat | 1. Kapitan sprejme prošnjo. 2. Preveri odgovor in ustvarjen roster zapis. Pričakovano: status `accepted`; prosilec je dodan v ekipo z vlogo `SUPPORT`. |
-| Dejanski rezultat | Odgovor vsebuje status `accepted`; ustvarjen je roster zapis za prosilca. PASS. |
-| Dokaz izvedbe | `TeamJoinRequestServiceTest#captainCanAcceptJoinRequestAndMemberIsCreated` – 1 test, brez napake. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 1 |
+| **Kratek opis** | Sprejem prošnje za pridružitev ekipi |
+| **Referenca:** `TeamJoinRequestService.acceptJoinRequest`; `docs/project-current-state-overview.md` (ekipe, join requests) | **Zahteve v SZPO:** / |
+
+**Namen:** Preveriti, da kapitan sprejme čakajočo prošnjo, ta preide v status `accepted` in prosilec postane član ekipe. Gre za članstvo v ekipi, ne za prijavo ekipe na turnir.
+
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Prošnja v statusu `pending`; ekipa obstaja; trenutni uporabnik je kapitan ekipe (vloga `player`); omejitev rostra je 5. | ID čakajoče prošnje (testni fixture). |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Kapitan sprejme prošnjo. | Prošnja se v repozitoriju označi kot sprejeta. |
+| 2. | Preveri odgovor storitve. | Status prošnje je `ACCEPTED`. |
+| 3. | Preveri ustvarjeni roster zapis. | Prosilec je dodan v ekipo z vlogo `SUPPORT`. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi `TeamJoinRequestServiceTest#captainCanAcceptJoinRequestAndMemberIsCreated`. | Test uspe. |
+
+**Opombe, komentarji, navodila:** Repozitoriji so mock. Pravilo, da prosilec ne sme biti član druge ekipe, v tem testu ni posebej preverjeno.
+
+**Rezultat izvedbe (4. 11. 2026):** status `ACCEPTED`, roster zapis za prosilca ustvarjen – **PASS**.
 
 ### FT-04 – Organizator ustvari osnutek turnirja s privzetimi nastavitvami
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-04** |
 | --- | --- |
-| Odgovorni | Član 2 (macOS Sonoma) |
-| Cilj / sledljivost | Preveriti ustvarjanje turnirja in določitev privzetih vrednosti. Scenarij se konča pri osnutku; ne preverja javnega iskanja ali ogleda turnirja. `TournamentService.createTournament`; `POST /api/organizer/tournaments`. |
-| Predpogoji / podatki | Avtenticiran organizator; naslov `"  Mid Wars Open  "`; opis `"  Public qualifier  "`; `startsAt=STARTS_AT`, prijavno okno od `STARTS_AT - 7 dni` do `STARTS_AT - 1 dan`; nekatere nastavitve so izpuščene. |
-| Koraki in pričakovani rezultat | 1. Ustvari turnir. 2. Preveri ukaz, poslan repozitoriju. Pričakovano: naslov `Mid Wars Open`, slug `mid-wars-open`, stanje `draft`, format `SINGLE_ELIMINATION`, privzeta kapaciteta ekip in velikost ekipe 5. |
-| Dejanski rezultat | Naslov, slug, format, organizator, privzeta kapaciteta in velikost ekipe ustrezajo pričakovanemu. PASS. |
-| Dokaz izvedbe | `TournamentServiceTest#organizerCanCreateDraftTournamentWithDefaults` in `TournamentControllerTest#createTournamentReturnsCreatedTournament` – 2 testa, brez napake; controller vrne `201 Created`, ID, lokacijo in stanje `draft`. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 2 |
+| **Kratek opis** | Ustvarjanje osnutka turnirja |
+| **Referenca:** `TournamentService.createTournament`; `POST /api/organizer/tournaments` | **Zahteve v SZPO:** / |
+
+**Namen:** Preveriti ustvarjanje turnirja, normalizacijo naslova, ustvarjen slug in privzete nastavitve, kadar jih organizator ne poda, ter HTTP odgovor API-ja. Scenarij se konča pri osnutku in ne preverja javnega iskanja ali ogleda turnirja.
+
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Avtenticiran organizator. | Servis: naslov `"  Mid Wars Open  "`, opis `"  Public qualifier  "`, `startsAt`, prijavno okno od `startsAt − 7 dni` do `startsAt − 1 dan`; format in nastavitve niso podani. API: JSON z naslovom `Mid Wars Open`, `startsAt` in nastavitvami. |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Ustvari turnir prek servisa. | Uporabi se kontekst akterja (organizatorja); repozitorij prejme ukaz za ustvarjanje. |
+| 2. | Preveri ukaz repozitoriju. | naslov `Mid Wars Open`, slug `mid-wars-open`, format `SINGLE_ELIMINATION`, organizator in avtor sta trenutni uporabnik, največ ekip = privzeto (8), `teamSize` = 5. |
+| 3. | Pošlji `POST /api/organizer/tournaments` z veljavnim JWT. | HTTP `201 Created`, glava `Location` s potjo do turnirja, v telesu ID in status `draft`. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi `TournamentServiceTest#organizerCanCreateDraftTournamentWithDefaults`. | Test uspe. |
+| 2. | Zaženi `TournamentControllerTest#createTournamentReturnsCreatedTournament`. | Test uspe. |
+
+**Opombe, komentarji, navodila:** Servisni test ne preverja statusa `draft` v ukazu repozitoriju. V controller testu je servis nadomeščen z mock objektom, zato status `draft` v odgovoru izvira iz pripravljenega odgovora; test potrjuje HTTP pogodbo (status, `Location`, oblika JSON), ne poslovne logike.
+
+**Rezultat izvedbe (4. 11. 2026):** vrednosti ukaza in HTTP odgovor ustrezajo pričakovanim – **PASS**.
 
 ### FT-05 – Lastnik objavi veljaven osnutek turnirja
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-05** |
 | --- | --- |
-| Odgovorni | Član 2 (macOS Sonoma) |
-| Cilj / sledljivost | Preveriti poslovni prehod iz `draft` v `published`, ko objavo zahteva lastnik/organizator. Ne preverja javne strani, kataloga ali iskanja. `TournamentService.publishTournament`; `POST /api/organizer/tournaments/{tournamentId}/publish`. |
-| Predpogoji / podatki | Obstoječ osnutek z veljavnimi nastavitvami in datumi; trenutno prijavljen organizator lahko upravlja turnir. |
-| Koraki in pričakovani rezultat | 1. Lastnik objavi osnutek. 2. Preveri odgovor storitve in actor kontekst. Pričakovano: vrnjen status je `published`; izvedba beleži avtenticiranega organizatorja kot akterja. |
-| Dejanski rezultat | Status je `published`; actor kontekst je uporabljen. PASS. |
-| Dokaz izvedbe | `TournamentServiceTest#ownerCanPublishTournament` in `TournamentControllerTest#publishTournamentReturnsPublishedTournament` – 2 testa, brez napake; controller vrne `200 OK` in stanje `published`. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 2 |
+| **Kratek opis** | Objava osnutka turnirja |
+| **Referenca:** `TournamentService.publishTournament`; `POST /api/organizer/tournaments/{tournamentId}/publish` | **Zahteve v SZPO:** / |
+
+**Namen:** Preveriti prehod turnirja iz `draft` v `published`, ko objavo zahteva organizator, ki lahko upravlja turnir. Ne preverja javne strani, kataloga ali iskanja.
+
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Turnir v stanju `draft` z veljavnimi nastavitvami in datumi; trenutni organizator lahko upravlja turnir. | ID turnirja (testni fixture). |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Organizator objavi osnutek prek servisa. | Servis preveri pravico upravljanja, da je turnir v stanju, ki dovoli objavo, in veljavnost nastavitev; napaka se ne sproži. |
+| 2. | Preveri odgovor storitve. | Uporabi se kontekst akterja; vrnjen status je `published`. |
+| 3. | Pošlji `POST /api/organizer/tournaments/{id}/publish` z veljavnim JWT. | HTTP `200 OK`, v telesu status `published`. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi `TournamentServiceTest#ownerCanPublishTournament`. | Test uspe. |
+| 2. | Zaženi `TournamentControllerTest#publishTournamentReturnsPublishedTournament`. | Test uspe. |
+
+**Opombe, komentarji, navodila:** Repozitorij je mock (dovoljenje za upravljanje in objavljen turnir sta pripravljena v testu). V controller testu je servis mock, zato test potrjuje HTTP pogodbo, ne poslovne logike.
+
+**Rezultat izvedbe (4. 11. 2026):** status `published`, kontekst akterja uporabljen, API vrne `200 OK` – **PASS**.
 
 ### FT-06 – Organizator razporedi odobreno ekipo v skupino
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-06** |
 | --- | --- |
-| Odgovorni | Član 2 (macOS Sonoma) |
-| Cilj / sledljivost | Preveriti razporeditev ekipe z že odobreno prijavo v skupino in shranitev seeda. Predpogoji so testni fixture; scenarij ne odda prijave, ne pregleduje prijav in ne izvaja check-ina. `TournamentGroupService.addTeam`; `POST /api/organizer/tournament-groups/{groupId}/teams`. |
-| Predpogoji / podatki | Organizator lahko upravlja turnir; skupina in ekipa obstajata; za ekipo obstaja že odobrena prijava; seed `2`; ekipa še ni razporejena. |
-| Koraki in pričakovani rezultat | 1. Dodaj ekipo v skupino s seed številko `2`. 2. Preveri odziv in ukaz repozitoriju. Pričakovano: vrnjen je ID ekipe, ID odobrene prijave in seed `2`; shranjena razporeditev pripada izbrani skupini. |
-| Dejanski rezultat | Odgovor vsebuje pričakovano ekipo, prijavo in seed; repozitorij prejme pravilen ukaz. PASS. |
-| Dokaz izvedbe | `TournamentGroupServiceTest#organizerCanAddApprovedParticipantToGroup` – 1 test, brez napake. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 2 |
+| **Kratek opis** | Razporeditev ekipe v skupino turnirja |
+| **Referenca:** `TournamentGroupService.addTeam`; `POST /api/organizer/tournament-groups/{groupId}/teams` | **Zahteve v SZPO:** / |
+
+**Namen:** Preveriti razporeditev ekipe z že odobreno prijavo v skupino in shranitev seed številke. Scenarij ne odda prijave, ne pregleduje prijav in ne izvaja check-ina.
+
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Organizator lahko upravlja turnir; skupina in ekipa obstajata; za ekipo obstaja odobrena prijava (testni fixture); ekipa še ni razporejena. | ID skupine, ID ekipe, seed `2`. |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Dodaj ekipo v skupino s seed številko `2`. | Uporabi se kontekst akterja; servis poišče odobreno prijavo. |
+| 2. | Preveri odgovor. | Vrnjeni so ID ekipe, ID odobrene prijave in seed `2`. |
+| 3. | Preveri ukaz repozitoriju. | Ukaz vsebuje izbrano skupino, ekipo, prijavo in seed `2`. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi `TournamentGroupServiceTest#organizerCanAddApprovedParticipantToGroup`. | Test uspe. |
+
+**Opombe, komentarji, navodila:** Repozitoriji so mock; odobrena prijava je predpripravljen podatek.
+
+**Rezultat izvedbe (4. 11. 2026):** odgovor in ukaz repozitoriju ustrezata pričakovanemu – **PASS**.
 
 ### FT-07 – Uvoz tekme OpenDota zaključi uspešno in zabeleži statuse
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-07** |
 | --- | --- |
-| Odgovorni | Član 3 (Ubuntu 22.04) |
-| Cilj / sledljivost | Preveriti uspešen življenjski cikel uvoza in normalizacijo testnega payload-a. Klic OpenDota je nadomeščen z vnaprej določenim testnim odgovorom. `MatchImportService.importMatch`; `README.md` – Match import lifecycle; `docs/project-current-state-overview.md`. |
-| Predpogoji / podatki | Avtenticiran organizator; testni ID tekme `7894561230`; odjemalec OpenDota vrne vnaprej določen payload; za ta ID še ni uvoza. |
-| Koraki in pričakovani rezultat | 1. Zaženi uvoz. 2. Preveri status, dogodke, klic limiterja in normalizirane podatke. Pričakovano: zaporedje statusov `queued` → `processing` → `ready`; OpenDota kliče se enkrat; normalizirani rezultat shrani testne podatke igralcev. |
-| Dejanski rezultat | Status je `ready`; dogodki so v pričakovanem zaporedju; limiter in repo tok sta preverjena; normalizacija uspe. PASS. |
-| Dokaz izvedbe | `MatchImportServiceTest#importMatchCreatesProcessingRecordFetchesOpenDotaAndStoresReadyPayload` – 1 test, brez napake. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 3 |
+| **Kratek opis** | Uspešen uvoz tekme iz OpenDota |
+| **Referenca:** `MatchImportService.importMatch`; `POST /api/match-imports`; `README.md` (Match import lifecycle) | **Zahteve v SZPO:** / |
+
+**Namen:** Preveriti uspešen življenjski cikel uvoza (`queued` → `processing` → `ready`) in normalizacijo podatkov tekme.
+
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Avtenticiran organizator; za tekmo še ni uvoza; odjemalec OpenDota (mock) vrne vnaprej pripravljen odgovor. | ID tekme `7894561230`, IP odjemalca `203.0.113.10`. |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi uvoz tekme. | Omejevalnik zahtev preveri organizatorja in IP `203.0.113.10`. |
+| 2. | Preveri zaporedje klicev repozitorija. | `createQueued` → `markProcessing` (»Match import processing started.«) → `markReady`. |
+| 3. | Preveri odgovor. | Status `READY`; dogodki v zaporedju `QUEUED`, `PROCESSING`, `READY`. |
+| 4. | Preveri normalizirane podatke. | 1 igralec: junak `1`, račun `39734273`, zmagovalec; surovi odgovor vsebuje `match_id` 7894561230; `playersNormalized` = 1. |
+| 5. | Preveri osvežitev analitike. | Zahtevana je osvežitev analitike po uspešnem uvozu. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi `MatchImportServiceTest#importMatchCreatesProcessingRecordFetchesOpenDotaAndStoresReadyPayload`. | Test uspe. |
+
+**Opombe, komentarji, navodila:** Pravi OpenDota API ni klican. Število klicev odjemalca OpenDota v testu ni preverjeno.
+
+**Rezultat izvedbe (4. 11. 2026):** status `READY`, pravilno zaporedje dogodkov in klicev, normalizacija uspe – **PASS**.
 
 ### FT-08 – Ponovni uvoz po napaki uporabi isti zapis in ne podvoji igralcev
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-08** |
 | --- | --- |
-| Odgovorni | Član 3 (Ubuntu 22.04) |
-| Cilj / sledljivost | Preveriti retry importa v stanju `error` in idempotentno uporabo obstoječega zapisa. `MatchImportService.retryImport`; `POST /api/match-imports/{id}/retry`. |
-| Predpogoji / podatki | Za ID tekme že obstaja import v stanju `error` z razlogom rate limit; odjemalec pri ponovnem poskusu vrne veljaven testni payload. |
-| Koraki in pričakovani rezultat | 1. Sproži ponovni uvoz. 2. Preveri ID importa, statuse, število normaliziranih igralcev in klice repozitorija. Pričakovano: isti ID importa preide v `processing` in nato `ready`; nov import zapis ni ustvarjen; igralci se zapišejo enkrat. |
-| Dejanski rezultat | Ohranjen je isti ID; nov import ni ustvarjen; rezultat je `ready`; normaliziran je en testni zapis igralca. PASS. |
-| Dokaz izvedbe | `MatchImportServiceTest#retryExistingErrorImportDoesNotCreateDuplicateImportAndReplacesPlayersOnce` – 1 test, brez napake. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 3 |
+| **Kratek opis** | Ponovna oddaja uvoza za tekmo, katere uvoz je bil neuspešen |
+| **Referenca:** `MatchImportService.importMatch` (veja za obstoječ uvoz v stanju `error`); `POST /api/match-imports` | **Zahteve v SZPO:** / |
+
+**Namen:** Preveriti, da ponovna oddaja uvoza za tekmo z neuspešnim uvozom ponovno uporabi obstoječi zapis (isti ID), ne ustvari novega in igralce zapiše samo enkrat.
+
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Za tekmo obstaja uvoz v stanju `error` (koda `RATE_LIMITED`, »Rate limited.«); odjemalec OpenDota (mock) tokrat vrne veljaven odgovor. | ID tekme `7894561230`, IP odjemalca `203.0.113.10`. |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Ponovno oddaj uvoz za isto tekmo. | Nov zapis uvoza se ne ustvari (`createQueued` ni klican). |
+| 2. | Preveri prehod v obdelavo. | Obstoječi zapis preide v `processing` s sporočilom »Match import retry requested; processing restarted.« |
+| 3. | Preveri odgovor. | Isti ID uvoza; status `READY`. |
+| 4. | Preveri zapis normaliziranih podatkov. | `markReady` je klican natanko enkrat z 1 igralcem; zahtevana je osvežitev analitike. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi `MatchImportServiceTest#retryExistingErrorImportDoesNotCreateDuplicateImportAndReplacesPlayersOnce`. | Test uspe. |
+
+**Opombe, komentarji, navodila:** Test pokriva ponovno oddajo prek `importMatch`. Ločen endpoint `POST /api/match-imports/{id}/retry` (`retryImport`) v tem scenariju ni preverjen. Pravi OpenDota API ni klican.
+
+**Rezultat izvedbe (4. 11. 2026):** ohranjen isti ID, nov zapis ni ustvarjen, status `READY`, en normaliziran igralec – **PASS**.
 
 ### FT-09 – Podpisan avatar URL in potrditev shranjenega avatarja
 
-| Polje | Vsebina |
+| Testni scenarij | **DotaOps-TEST-TestScenarij-FT-09** |
 | --- | --- |
-| Odgovorni | Član 3 (Ubuntu 22.04) |
-| Cilj / sledljivost | Preveriti omejitev podpisa na pot trenutnega profila, varen upload kontrakt in potrditev URL-ja, ki ga izračuna backend. Dejanski prenos datoteke v Supabase ni del testnega okolja. `StorageUploadService`; `docs/backend-storage-upload-api.md`. |
-| Predpogoji / podatki | Avtenticiran igralec; ločena testna fixture-a za izdajo URL-ja (`avatar.png`, `image/png`, 1024 B) in potrditev (`profiles/{PROFILE_ID}/avatar.jpg`); profilni ID iz testnega fixture-a. |
-| Koraki in pričakovani rezultat | 1. V testu izdaje zahtevaj podpisan URL za PNG. Pričakovano: bucket `avatars`, profilno omejena pot, metoda `PUT`, največja velikost 2 MiB, tip `image/png`; skrivni service-role ključ ni v URL-ju. 2. V ločenem testu potrdi JPG objekt. Pričakovano: servis izračuna javni URL na osnovi bucketa in poti, posodobi profil ter vrne `persisted=true`. |
-| Dejanski rezultat | Pot, bucket, metoda, omejitev velikosti in tip so pravilni; skrivni ključ ni razkrit; potrditev uporabi backend URL in posodobi profilni zapis. PASS. |
-| Dokaz izvedbe | Dva servisna testa ter `StorageUploadControllerTest#createCurrentAvatarUploadUrlReturnsSignedUploadContract` in `#confirmCurrentAvatarReturnsPersistedAvatarUrl` – 4 testi, brez napake; MockMvc preveri tudi HTTP odgovor API-ja. |
+| **Aplikacija:** DotaOps · **Verzija aplikacije:** 0.0.1-SNAPSHOT | **Datum scenarija:** 3. 11. 2026 · **Avtor:** Član 3 |
+| **Kratek opis** | Nalaganje avatarja prek podpisanega URL-ja |
+| **Referenca:** `StorageUploadService`; `POST /api/me/avatar/upload-url`, `POST /api/me/avatar/confirm`; `docs/backend-storage-upload-api.md` | **Zahteve v SZPO:** / |
 
-## Zapisnik izvedbe
+**Namen:** Preveriti, da je podpisan URL omejen na pot trenutnega profila, da ne razkrije skrivnega ključa, in da potrditev shrani javni URL, ki ga izračuna backend.
 
-| Datum | ID-ji | Izvedeni testi | Uspešni | Napake | Status |
+| Predpogoji | Vhodni podatki |
+| --- | --- |
+| Avtenticiran igralec; Supabase Storage je nadomeščen z mock objektom. | Izdaja: `avatar.png`, `image/png`, 1024 B. Potrditev (servis): `profiles/{id}/avatar.jpg`; potrditev (API): `profiles/{id}/avatar.png`. |
+
+**Scenariji testiranja**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zahtevaj podpisan URL za PNG prek servisa. | bucket `avatars`, pot `profiles/{id}/avatar.png`, metoda `PUT`, največ 2 MiB, tip `image/png`; URL ne vsebuje `service-role-key`. |
+| 2. | Potrdi naložen JPG prek servisa. | Servis izračuna javni URL, posodobi profil in vrne `persisted=true`. |
+| 3. | Pošlji `POST /api/me/avatar/upload-url`. | HTTP `200 OK`; bucket, pot, metoda `PUT`, podpisan in javni URL, 2 MiB, `upsert=true`; brez skrivnega ključa. |
+| 4. | Pošlji `POST /api/me/avatar/confirm`. | HTTP `200 OK`; `avatarUrl` je javni URL, `persisted=true`. |
+
+**Pogoji uspešnega zaključka**
+
+| Korak | Akcija | Pričakovan rezultat |
+| --- | --- | --- |
+| 1. | Zaženi oba testa v `StorageUploadServiceTest`. | Oba testa uspeta. |
+| 2. | Zaženi oba testa v `StorageUploadControllerTest`. | Oba testa uspeta. |
+
+**Opombe, komentarji, navodila:** Dejanski prenos datoteke v Supabase ni del testnega okolja. V controller testih je servis mock, zato preverjata HTTP pogodbo.
+
+**Rezultat izvedbe (4. 11. 2026):** vse preverjene vrednosti ustrezajo pričakovanim – **PASS**.
+
+## 6. Zapisnik izvedbe
+
+| Datum | ID-ji | Izvedeni testi | Uspešni | Neuspešni | Status |
 | --- | --- | --- | ---: | ---: | --- |
 | 3. 11. 2026 | FT-01–FT-09 | 14 izbranih JUnit metod | 14 | 0 | Uspešno |
+| 4. 11. 2026 | FT-01–FT-09 | 14 izbranih JUnit metod (ponovna izvedba) | 14 | 0 | Uspešno |
 
-Končni ciljani zagoni so uporabili selekcijo navedenih servisnih in controller testov. Rezultat Surefire: **14 testov, 0 neuspešnih, 0 napak, 0 preskočenih; oba zagona BUILD SUCCESS**.
+Ponovna izvedba 4. 11. 2026 je potekala s standardnim Maven Wrapper zagonom (brez posebnih nastavitev). Rezultat Surefire: **Tests run: 14, Failures: 0, Errors: 0, Skipped: 0 – BUILD SUCCESS**. Izvedba 3. 11. 2026 je zaradi omejitev peskovnika (JVM self-attach, loopback povezave) potekala z `-DforkCount=0` in Mockito agentom, z enakim rezultatom.
 
-Za ponovitev v backend mapi uporabite Maven Wrapper in izberite metode iz zgornje tabele z lastnostjo Surefire `-Dtest=Razred#metoda,...`; uporabite profil `test`. Lokalna izvedba je zaradi omejitve self-attach uporabila Maven 3.9.14, `-DforkCount=0` in Mockito agent; ta nastavitev je vezana na testno okolje.
+Ukaz za ponovitev (v mapi `backend`):
 
-Prvi poskus controller testov v sandboxu je bil blokiran pri inicializaciji Spring konteksta: `SupabaseImageStorageService` je poskusil vzpostaviti loopback povezavo in okolje je vrnilo `SocketException: Permission denied: connect`. Po dovoljenem ponovnem zagonu z lokalnim loopback dostopom sta oba controller testna razreda uspešno zaključila. Končni rezultat vključuje vse štiri izbrane API/controller teste.
+```powershell
+.\mvnw.cmd test "-Dtest=ProfileServiceTest#updateCurrentProfileNormalizesPatchFields,TeamServiceTest#createTeamSetsAuthenticatedUserAsCaptainAndGeneratesSlug,TeamJoinRequestServiceTest#captainCanAcceptJoinRequestAndMemberIsCreated,TournamentServiceTest#organizerCanCreateDraftTournamentWithDefaults+ownerCanPublishTournament,TournamentControllerTest#createTournamentReturnsCreatedTournament+publishTournamentReturnsPublishedTournament,TournamentGroupServiceTest#organizerCanAddApprovedParticipantToGroup,MatchImportServiceTest#importMatchCreatesProcessingRecordFetchesOpenDotaAndStoresReadyPayload+retryExistingErrorImportDoesNotCreateDuplicateImportAndReplacesPlayersOnce,StorageUploadServiceTest#createCurrentAvatarUploadUrlGeneratesProfileScopedPath+confirmCurrentAvatarPersistsBackendGeneratedPublicUrlAndPath,StorageUploadControllerTest#createCurrentAvatarUploadUrlReturnsSignedUploadContract+confirmCurrentAvatarReturnsPersistedAvatarUrl" "-Dsurefire.failIfNoSpecifiedTests=false"
+```
 
-## Sledljivost in omejitve rezultata
+## 7. Sledljivost in omejitve
 
 | Področje | Scenariji | Pokritje / omejitev |
 | --- | --- | --- |
-| Profil | FT-01 | Normalizacija zahtevka in poslanega ukaza; brez preverjanja dejanskega zapisa v bazi ali HTTP sloju. |
-| Ekipe | FT-02–FT-03 | Ustvarjanje ekipe, kapetanov roster in sprejem prošnje; podatkovna baza je mock. |
-| Turnirji in skupine | FT-04–FT-06 | Ustvarjanje/osnutek, objava (servis in MockMvc controller) ter dodelitev ekipe v skupino; brez javne strani, prijave, check-ina ali bracket/result toka. |
-| Zunanji podatki | FT-07–FT-08 | Import, normalizacija, lifecycle, retry in idempotentnost z mock OpenDota odgovorom; brez klica pravega OpenDota API-ja. |
-| Slike | FT-09 | Servisna validacija in MockMvc pogodba za upload URL/potrditev; brez HTTP prenosa datoteke v Supabase. |
+| Profil | FT-01 | Normalizacija zahtevka in ukaza repozitoriju; brez zapisa v bazo in brez HTTP sloja. |
+| Ekipe | FT-02–FT-03 | Ustvarjanje ekipe, kapetanov roster zapis in sprejem prošnje; repozitoriji so mock. |
+| Turnirji in skupine | FT-04–FT-06 | Ustvarjanje osnutka, objava (servis in HTTP pogodba) ter razporeditev ekipe v skupino; brez javne strani, prijave, check-ina ali izločilnega razporeda. |
+| Zunanji podatki | FT-07–FT-08 | Življenjski cikel uvoza, normalizacija in ponovna oddaja po napaki z mock odgovorom OpenDota; endpoint `/{id}/retry` ni pokrit. |
+| Slike | FT-09 | Servisna logika in HTTP pogodba za podpisan URL in potrditev; brez prenosa datoteke v Supabase. |
 
-Za zaključek polnega uporabniškega funkcionalnega testiranja je treba scenarije ponoviti prek delujočega frontend/backend okolja z ločeno testno bazo, testnimi računi in dostopom do razvojnega Supabase Storage/OpenDota. To ni bilo potrebno za zgoraj zapisane servisne teste in ni bilo izvedeno.
+Za polno uporabniško funkcionalno testiranje bi bilo treba scenarije ponoviti prek delujočega frontenda in backenda z ločeno testno bazo, testnimi računi ter razvojnim Supabase Storage/OpenDota. To ni bilo izvedeno.
+
+## 8. Popravki v različici 1.1
+
+Pri preverjanju skladnosti zapisanih rezultatov z dejanskimi testi so bili popravljeni naslednji zapisi:
+
+| Scenarij | Prej | Popravek |
+| --- | --- | --- |
+| FT-08 | Sklic na `MatchImportService.retryImport` in `POST /api/match-imports/{id}/retry`. | Test kliče `importMatch` (ponovna oddaja prek `POST /api/match-imports`); `/{id}/retry` je navedeno kot nepokrito. |
+| FT-07 | »OpenDota se kliče enkrat«. | Test števila klicev ne preverja; dodane so dejansko preverjene točke (omejevalnik z IP, zaporedje klicev, podatki igralca, osvežitev analitike). |
+| FT-04 | Status `draft` naveden kot preverjen rezultat servisa. | Servisni test statusa ne preverja; `draft` v controller testu izvira iz mock odgovora. Dodana privzeta vrednost največ ekip (8). |
+| FT-03 | Predpogoj »prosilec nima aktivnega članstva v drugi ekipi«. | V testu ni pripravljen niti preverjen; naveden kot omejitev. |
+| FT-05 | Koraki niso navajali preverjanj servisa. | Dodano, da servis pred objavo preveri pravico upravljanja, stanje in veljavnost osnutka; controller del označen kot preverjanje HTTP pogodbe. |
+| Vsi | Skrčena oblika tabel. | Scenariji so zapisani po predlogi (aplikacija, verzija, avtor, referenca, namen, predpogoji, vhodni podatki, koraki, pogoji uspešnega zaključka, opombe). |
+| Zapisnik | Le izvedba v peskovniku. | Dodana ponovna izvedba 4. 11. 2026 in natančen ukaz. |
 
 ## Viri
 
 - ISO/IEC/IEEE 29119-3:2021, *Software and systems engineering — Software testing — Part 3: Test documentation*: https://www.iso.org/standard/79429.html
 - IEEE SA, *IEEE/ISO/IEC 29119-3-2021*: https://standards.ieee.org/ieee/29119-3/7499/
-- Projektna dokumentacija in implementacija v tem repozitoriju, zlasti `docs/project-current-state-overview.md`, API dokumenti pod `docs/` in testi pod `backend/src/test/java/`.
+- Projektna dokumentacija in implementacija v tem repozitoriju, zlasti `docs/project-current-state-overview.md`, `docs/reports/Iteracija_1_DotaOps_pregled.md`, API dokumenti pod `docs/` in testi pod `backend/src/test/java/`.
