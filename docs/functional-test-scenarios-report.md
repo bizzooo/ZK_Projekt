@@ -119,7 +119,6 @@ Iz obsega so izpuščeni tokovi, ki jih naloga prepoveduje: (1) javno iskanje in
 
 **Opombe, komentarji, navodila:** Objavljenega turnirja ni mogoče vrniti v osnutek; za ponovitev pripravi nov osnutek.
 
-**Rezultat izvedbe:** _datum: ____ · izvedel: ____ · PASS / FAIL · opombe: ____ _
 
 ### FT-03 – Organizator uvozi tekmo iz OpenDota
 
@@ -152,16 +151,6 @@ Iz obsega so izpuščeni tokovi, ki jih naloga prepoveduje: (1) javno iskanje in
 | 1. | Primerjaj dejanske rezultate korakov 2–5 s pričakovanimi. | Vsi se ujemajo; status ni »Error«. |
 
 **Opombe, komentarji, navodila:** Rezultat je odvisen od razpoložljivosti OpenDota. Če se prikaže status »Error« zaradi omejitve zahtev, to zabeleži v opombe in scenarij ponovi kasneje.
-
-**Rezultat izvedbe:** _datum: ____ · izvedel: ____ · PASS / FAIL · opombe: ____ _
-
-## 6. Zapisnik izvedbe
-
-| Datum | ID | Izvedel | Status | Opombe / napake |
-| --- | --- | --- | --- | --- |
-| | FT-01 | | | |
-| | FT-02 | | | |
-| | FT-03 | | | |
 
 Za vsak scenarij shranite dokazilo (posnetek zaslona končnega stanja).
 
