@@ -78,9 +78,9 @@ nadomestiti označena mesta z dejanskimi imeni in priimki.
 
 | ID scenarija | Naziv | Odgovorna oseba | Odgovornost |
 | --- | --- | --- | --- |
-| FT-01 | Javni katalog in podrobnosti turnirja | Testna oseba A — **vpišite ime in priimek** | Izvede korake, shrani dokazila in izpolni zapis. |
-| FT-02 | Prijava ekipe, odobritev in check-in | Testna oseba B — **vpišite ime in priimek** | Preveri kapetanski tok; odobritev zahteva organizatorja in je blokirana, če predpogoji niso izpolnjeni. |
-| FT-03 | Javni pregled bracketa in napredovanja | Testna oseba C — **vpišite ime in priimek** | Brez prijave pregleda javni bracket; ne spreminja tekem ali rezultatov. |
+| FT-01 | Javni katalog in podrobnosti turnirja | Testna oseba A — **Jure Nadrah** | Izvede korake, shrani dokazila in izpolni zapis. |
+| FT-02 | Prijava ekipe, odobritev in check-in | Testna oseba B — **Jure Nadrah** | Preveri kapetanski tok; odobritev zahteva organizatorja in je blokirana, če predpogoji niso izpolnjeni. |
+| FT-03 | Javni pregled bracketa in napredovanja | Testna oseba C — **Jure Nadrah** | Brez prijave pregleda javni bracket; ne spreminja tekem ali rezultatov. |
 
 Odgovorna oseba zabeleži dejanskega izvajalca in potrdi rezultat.
 
